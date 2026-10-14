@@ -1,35 +1,28 @@
-from nicegui import ui
 import os
+from nicegui import ui
 from google import genai
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+api_key = os.environ.get("GEMINI_API_KEY")
+cliente = genai.Client(api_key=api_key)
 
-@ui.page('/')
-def home():
-    ui.label('Mi Chatbot con Gemini').classes('text-2xl font-bold text-center w-full mt-4')
-    chat = ui.column().classes('w-full max-w-2xl mx-auto p-4 gap-2 h-[70vh] overflow-auto border rounded')
+MODEL_ID = "gemini-3-flash-preview"
 
-    def enviar():
-        pregunta = entrada.value.strip()
-        if not pregunta:
-            return
-        with chat:
-            ui.label(f'Tú: {pregunta}').classes('bg-blue-100 p-2 rounded self-end')
-        entrada.value = ''
-        try:
-            respuesta = client.models.generate_content(
-                model="gemini-3.8-flash",
-                contents=pregunta
-            )
-            with chat:
-                ui.label(f'Bot: {respuesta.text}').classes('bg-gray-100 p-2 rounded')
-        except Exception as e:
-            with chat:
-                ui.label(f'Error: {e}').classes('bg-red-100 p-2 rounded')
+def enviar():
+    pregunta = entrada.value
+    if not pregunta.strip():
+        return
+    resultado.set_text('Pensando... ⏳')
+    try:
+        response = cliente.models.generate_content(model=MODEL_ID, contents=pregunta)
+        resultado.set_text(response.text)
+    except Exception as e:
+        resultado.set_text(f'Error: {e}')
 
-    with ui.row().classes('w-full max-w-2xl mx-auto mt-2'):
-        entrada = ui.input(label='Escribe tu pregunta').classes('flex-grow').on('keydown.enter', enviar)
-        ui.button('ENVIAR', on_click=enviar)
+with ui.card().classes('w-96 mx-auto mt-10 p-4'):
+    ui.label('Chat Gemini!').classes('text-xl font-bold')
+    entrada = ui.input(placeholder='Escribe tu pregunta').classes('w-full')
+    ui.button('ENVIAR', on_click=enviar).classes('w-full bg-blue-500 text-white')
+    resultado = ui.label('').classes('w-full whitespace-pre-wrap mt-4')
 
-import os
-ui.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))
+port = int(os.environ.get("PORT", 8080))
+ui.run(title="Chat Gemini", host="0.0.0.0", port=port)
